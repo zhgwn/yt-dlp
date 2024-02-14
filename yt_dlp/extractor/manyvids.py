@@ -1,4 +1,5 @@
 import json
+import datetime
 
 from .common import InfoExtractor
 
@@ -40,15 +41,13 @@ class ManyVidsIE(InfoExtractor):
         download_webpage = self._download_webpage(download_url, video_id, expected_status=200)
         download: dict = json.loads(download_webpage).get('data')
 
-        is_free: bool = info["isFree"]
-
         title = info["title"]
-        if title and is_free is False:
-            title += " (Preview)"
 
-        if is_free:
-            download_url = download["filepath"]
-        else:
+        upload_datetime = datetime.datetime.fromisoformat(info["launchDate"])
+
+        download_url = download.get("filepath")
+        if download_url is None:
+            title += " (Preview)"
             download_url = download.get("teaser", {}).get("filepath")
             if download_url is None:
                 raise ValueError('this video has no preview')
@@ -60,5 +59,14 @@ class ManyVidsIE(InfoExtractor):
             'title': title,
             'description': info.get("description") or None,
             'uploader': info["model"]["displayName"],
+            'uploader_id': info["modelId"],
+            'timestamp': int(upload_datetime.timestamp()),
             'like_count': int(info["likes"]),
+            'view_count': int(info["views"]),
+            'comment_count': int(info["comments"]),
+            'thumbnail': info["thumbnail"],
+            'width': int(info["width"]),
+            'height': int(info["height"]),
+            'duration_str': info["videoDuration"],
+            'tags': [t['label'] for t in info["tagList"]],
         }
